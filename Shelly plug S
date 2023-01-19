@@ -1,0 +1,177 @@
+substitutions:
+  #filter settings
+  window_size: "3"
+  send_every: "1"
+  send_first_at: "1"
+
+  max_current: "10"
+  max_temp: "70.0"
+
+  update_interval: "3s" #update interval in seconds # low update interval will cause inacurate results, measurements are based on pulses # https://tinkerman.cat/post/hlw8012-ic-new-sonoff-pow
+  update_interval_slow: "5s" #update interval in seconds
+
+esphome:
+  name: "${devicename}"
+
+esp8266:
+  board: esp01_1m
+
+logger:
+
+api:
+  encryption:
+    key: "ThPfR6f+epdPwN0bx63o4+yEfejlq4DP8juJfaNr0jE="
+
+ota:
+  password: "297e7ca2c43a39cf7c8cb62c808797b2"
+
+wifi:
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+  reboot_timeout: 3min
+
+time:
+  - platform: sntp
+    id: my_time
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: True
+    name: "${devicename}_button"
+    on_press:
+      - switch.toggle: relay
+
+#red led for status
+status_led:
+  pin:
+    number: GPIO00
+    inverted: True
+
+#blue light to indicate power
+output:
+  - platform: gpio
+    pin: GPIO02
+    inverted: true
+    id: led
+
+switch:
+  - platform: gpio
+    pin: GPIO15
+    id: relay
+    name: "${channel_1}"
+    on_turn_on:
+      - output.turn_on: led
+    on_turn_off:
+      - output.turn_off: led
+
+sensor:
+  # NTC Temperature
+  - platform: ntc
+    sensor: temp_resistance_reading
+    name: ${devicename} temperature
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    icon: "mdi:thermometer"
+    filters:
+       - median:
+          window_size: ${window_size}
+          send_every: ${send_every}
+          send_first_at: ${send_first_at}
+    calibration:
+      b_constant: 3350
+      reference_resistance: 10kOhm
+      reference_temperature: 298.15K
+    on_value_range:
+      - above: ${max_temp}
+        then:
+          - switch.turn_off: relay
+          - homeassistant.service:
+              service: persistent_notification.create
+              data:
+                title: Message from ${devicename}
+              data_template:
+                message: Switch turned off because temperature exceeded ${max_temp}°C
+  - platform: resistance
+    id: temp_resistance_reading
+    sensor: temp_analog_reading
+    configuration: DOWNSTREAM
+    resistor: 32kOhm
+  - platform: adc
+    id: temp_analog_reading
+    pin: A0
+    update_interval: ${update_interval_slow}
+
+  - platform: hlw8012
+    model: BL0937
+    sel_pin:
+      number: GPIO12
+      inverted: true
+    cf_pin: GPIO05
+    cf1_pin: GPIO14
+    current_resistor: ${current_res}
+    voltage_divider: ${voltage_div}
+    current:
+      name: "${channel_1} current"
+      unit_of_measurement: "A"
+      accuracy_decimals: 1
+      icon: mdi:flash-outline
+      filters:
+       - median:
+          window_size: ${window_size}
+          send_every: ${send_every}
+          send_first_at: ${send_first_at}
+      on_value_range:
+        - above: ${max_current}
+          then:
+            - switch.turn_off: relay
+            - homeassistant.service:
+                service: persistent_notification.create
+                data:
+                  title: Message from ${devicename}
+                data_template:
+                  message: Switch turned off because current exceeded ${max_current}A
+    voltage:
+      name: "${channel_1} voltage"
+      unit_of_measurement: "V"
+      icon: mdi:flash-outline
+      accuracy_decimals: 0
+      filters:
+       - median:
+          window_size: ${window_size}
+          send_every: ${send_every}
+          send_first_at: ${send_first_at}
+    power:
+      name: "${channel_1} power"
+      id: power
+      unit_of_measurement: "W"
+      accuracy_decimals: 0
+      filters:
+       - multiply: ${Power_calibration_multiplier}
+       - median:
+          window_size: ${window_size}
+          send_every: ${send_every}
+          send_first_at: ${send_first_at}
+      icon: mdi:flash-outline
+      on_value_range:
+        - above: ${max_power}
+          then:
+            - switch.turn_off: relay
+            - homeassistant.service:
+                service: persistent_notification.create
+                data:
+                  title: Message from ${devicename}
+                data_template:
+                  message: Switch turned off because power exceeded ${max_power}W
+    change_mode_every: "2"
+    update_interval: ${update_interval}
+
+  - platform: total_daily_energy
+    name: "${channel_1} daily energy"
+    power_id: power
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+    unit_of_measurement: kWh
