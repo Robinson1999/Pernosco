@@ -3,13 +3,13 @@ debug:
 
 sensor:
   - platform: wifi_signal
-    name: "${devicename} WiFi Signal"
-    update_interval: ${update_interval_slow}
+    name: "WiFi Signal"
+    update_interval: 10
     filters:
        - median:
-          window_size: ${window_size}
-          send_every: ${send_every}
-          send_first_at: ${send_first_at}
+          window_size: 3
+          send_every: 1
+          send_first_at: 1
 
   - platform: uptime
     name: Uptime Sensor
