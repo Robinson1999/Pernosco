@@ -1,0 +1,48 @@
+debug:
+  update_interval: 10s
+
+sensor:
+  - platform: wifi_signal
+    name: "${devicename} WiFi Signal"
+    update_interval: ${update_interval_slow}
+    filters:
+       - median:
+          window_size: ${window_size}
+          send_every: ${send_every}
+          send_first_at: ${send_first_at}
+
+  - platform: uptime
+    name: Uptime Sensor
+
+  - platform: debug
+    free:
+      name: "Heap Free"
+    fragmentation:
+      name: "Heap Fragmentation"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
+
+  #Wifi info
+  - platform: wifi_info
+    ip_address:
+      name: ESP IP Address
+    ssid:
+      name: ESP Connected SSID
+    bssid:
+      name: ESP Connected BSSID
+    mac_address:
+      name: ESP Mac Wifi Address
+    scan_results:
+      name: ESP Latest Scan Results
