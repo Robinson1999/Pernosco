@@ -21,6 +21,8 @@ sensor:
       name: "Heap Max Block"
     loop_time:
       name: "Loop Time"
+    psram:
+      name: "Free PSRAM"
 
 text_sensor:
   - platform: version
@@ -31,6 +33,10 @@ text_sensor:
       name: "Device Info"
     reset_reason:
       name: "Reset Reason"
+
+  - platform: ethernet_info
+    ip_address:
+      name: ESP IP Address
 
   #Wifi info
   - platform: wifi_info
@@ -44,3 +50,7 @@ text_sensor:
       name: ESP Mac Wifi Address
     scan_results:
       name: ESP Latest Scan Results
+
+psram:
+  mode: octal
+  speed: 80MHz
